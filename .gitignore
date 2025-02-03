@@ -1,3 +1,4 @@
 .DS_Store
 .idea/*
 req_test.go
+model.go

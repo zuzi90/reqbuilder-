@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/flate"
 	"github.com/klauspost/compress/zstd"
@@ -31,14 +30,13 @@ func New(t *testing.T) *Builder {
 
 }
 
-// Request sends a POST request to the specified endpoint
+// Request sends a POST request to the specified endpoint.
 func (b *Builder) Request(
 	ctx context.Context,
 	method string,
 	host,
 	endpoint string,
 	reqBody []byte,
-	result any,
 	cookies *[]*http.Cookie,
 	headers map[string]string,
 	authorization string) (*http.Response, []*http.Cookie) {
@@ -76,17 +74,12 @@ func (b *Builder) Request(
 		}
 	}()
 
-	respBody, err := b.readResponseBody(response)
-
-	// Создаем мапу для быстрого поиска кук
 	cookieMap := make(map[string]*http.Cookie)
 
-	// Добавляем все куки из ответа сервера
 	for _, c := range response.Cookies() {
 		cookieMap[c.Name] = c
 	}
 
-	// Добавляем только те куки из `cookies`, которых еще нет в `cookieMap`
 	if cookies != nil && len(*cookies) != 0 {
 		for _, c := range *cookies {
 			if _, exists := cookieMap[c.Name]; !exists {
@@ -95,18 +88,10 @@ func (b *Builder) Request(
 		}
 	}
 
-	// Преобразуем карту обратно в срез
 	allCookies := make([]*http.Cookie, 0, len(cookieMap))
 	for _, c := range cookieMap {
 		allCookies = append(allCookies, c)
 	}
-
-	if response.Header.Get("Content-Type") != "application/json" {
-		return response, allCookies
-	}
-
-	err = json.Unmarshal(respBody, result)
-	b.require.NoError(err)
 
 	return response, allCookies
 }
@@ -116,6 +101,7 @@ type BrotliReadCloser struct {
 	io.Closer
 }
 
+// MultipartRequest sends a request with a `multipart/form-data` body to the specified endpoint.
 func (b *Builder) MultipartRequest(
 	t *testing.T,
 	ctx context.Context,
@@ -126,8 +112,7 @@ func (b *Builder) MultipartRequest(
 	formData string,
 	cookies []*http.Cookie,
 	headers map[string]string,
-	authorization string,
-	result any) (*http.Response, []*http.Cookie) {
+	authorization string) (*http.Response, []*http.Cookie) {
 	t.Helper()
 
 	var req *http.Request
@@ -148,7 +133,6 @@ func (b *Builder) MultipartRequest(
 		}
 	}()
 
-	// Создаём запрос с `multipart/form-data`
 	req, err = http.NewRequestWithContext(ctx, method, host+endpoint, body)
 	if err != nil {
 		b.t.Log(err)
@@ -172,7 +156,6 @@ func (b *Builder) MultipartRequest(
 
 	response, err := b.client.Do(req)
 	b.require.NoError(err)
-
 	defer func() {
 		if err = response.Body.Close(); err != nil {
 			b.t.Log(err)
@@ -180,15 +163,15 @@ func (b *Builder) MultipartRequest(
 		}
 	}()
 
-	// Создаем мапу для быстрого поиска кук
+	// Create a map for quick cookie search
 	cookieMap := make(map[string]*http.Cookie)
 
-	// Добавляем все куки из ответа сервера
+	// Add all cookies from the server response
 	for _, c := range response.Cookies() {
 		cookieMap[c.Name] = c
 	}
 
-	// Добавляем только те куки из `cookies`, которых еще нет в `cookieMap`
+	// Add only those cookies from `cookies` that are not yet in `cookieMap`
 	if cookies != nil && len(cookies) != 0 {
 		for _, c := range cookies {
 			if _, exists := cookieMap[c.Name]; !exists {
@@ -197,33 +180,79 @@ func (b *Builder) MultipartRequest(
 		}
 	}
 
-	// Преобразуем карту обратно в срез
+	// Convert the map back to a slice
 	allCookies := make([]*http.Cookie, 0, len(cookieMap))
 	for _, c := range cookieMap {
 		allCookies = append(allCookies, c)
 	}
 
-	if response.Header.Get("Content-Type") != "application/json" {
-		return response, allCookies
-	}
-
-	respBody, err := b.readResponseBody(response)
-	b.require.NoError(err)
-
-	err = json.Unmarshal(respBody, result)
-	b.require.NoError(err)
-
 	return response, allCookies
 
 }
 
-func (b *Builder) RequestWithoutBody() (*http.Response, []*http.Cookie) {
+// RequestWithoutBody sends a request without a body to the specified endpoint.
+func (b *Builder) RequestWithoutBody(
+	ctx context.Context,
+	method,
+	host,
+	endpoint string,
+	headers map[string]string,
+	cookies []*http.Cookie,
+	authorization string,
+) (*http.Response, []*http.Cookie) {
+	b.t.Helper()
 
-	return nil, nil
+	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, nil)
+	if err != nil {
+		b.t.Log(err)
+	}
+
+	b.require.NoError(err)
+
+	if len(headers) != 0 {
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+	}
+
+	if cookies != nil && len(cookies) != 0 {
+		req.Header.Set("Authorization", authorization)
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+	}
+
+	response, err := b.client.Do(req)
+	if err != nil {
+		b.t.Log(err)
+	}
+
+	b.require.NoError(err)
+
+	cookieMap := make(map[string]*http.Cookie)
+
+	for _, c := range response.Cookies() {
+		cookieMap[c.Name] = c
+	}
+
+	if cookies != nil && len(cookies) != 0 {
+		for _, c := range cookies {
+			if _, exists := cookieMap[c.Name]; !exists {
+				cookieMap[c.Name] = c
+			}
+		}
+	}
+
+	allCookies := make([]*http.Cookie, 0, len(cookieMap))
+	for _, c := range cookieMap {
+		allCookies = append(allCookies, c)
+	}
+
+	return response, allCookies
 }
 
-// readResponseBody decodes the response body and returns it as a byte slice.
-func (b *Builder) readResponseBody(response *http.Response) ([]byte, error) {
+// ReadResponseBody decodes the response body and returns it as a byte slice.
+func (b *Builder) ReadResponseBody(response *http.Response) ([]byte, error) {
 	var reader io.ReadCloser
 	var err error
 
@@ -254,14 +283,4 @@ func (b *Builder) readResponseBody(response *http.Response) ([]byte, error) {
 	}
 
 	return io.ReadAll(reader)
-}
-
-type UserSignIn struct {
-	Email       string `json:"email,omitempty"`
-	Password    string `json:"password"`
-	PhoneNumber string `json:"phoneNumber,omitempty"`
-}
-
-type SignIn struct {
-	Data string `json:"data"`
 }
