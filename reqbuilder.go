@@ -21,17 +21,17 @@ type Builder struct {
 	require *require.Assertions
 }
 
-func New(t *testing.T) *Builder {
+func New(require *require.Assertions) *Builder {
 	return &Builder{
 		client:  &http.Client{},
-		t:       t,
-		require: require.New(t),
+		require: require,
 	}
 
 }
 
 // Request sends a POST request to the specified endpoint.
 func (b *Builder) Request(
+	t *testing.T,
 	ctx context.Context,
 	method string,
 	host,
@@ -40,11 +40,11 @@ func (b *Builder) Request(
 	cookies *[]*http.Cookie,
 	headers map[string]string,
 	authorization string) (*http.Response, []*http.Cookie) {
-	b.t.Helper()
+	t.Helper()
 
 	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, bytes.NewReader(reqBody))
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 	}
 
 	b.require.NoError(err)
@@ -64,15 +64,9 @@ func (b *Builder) Request(
 
 	response, err := b.client.Do(req)
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 	}
 	b.require.NoError(err)
-
-	defer func() {
-		if err = response.Body.Close(); err != nil {
-			b.t.Log(err)
-		}
-	}()
 
 	cookieMap := make(map[string]*http.Cookie)
 
@@ -123,19 +117,19 @@ func (b *Builder) MultipartRequest(
 
 	err = writer.WriteField(formData, string(requestBody))
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 		b.require.NoError(err)
 	}
 	func() {
 		if err = writer.Close(); err != nil {
-			b.t.Log(err)
+			t.Log(err)
 			b.require.NoError(err)
 		}
 	}()
 
 	req, err = http.NewRequestWithContext(ctx, method, host+endpoint, body)
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 		b.require.NoError(err)
 	}
 
@@ -156,12 +150,6 @@ func (b *Builder) MultipartRequest(
 
 	response, err := b.client.Do(req)
 	b.require.NoError(err)
-	defer func() {
-		if err = response.Body.Close(); err != nil {
-			b.t.Log(err)
-			b.require.NoError(err)
-		}
-	}()
 
 	// Create a map for quick cookie search
 	cookieMap := make(map[string]*http.Cookie)
@@ -192,6 +180,7 @@ func (b *Builder) MultipartRequest(
 
 // RequestWithoutBody sends a request without a body to the specified endpoint.
 func (b *Builder) RequestWithoutBody(
+	t *testing.T,
 	ctx context.Context,
 	method,
 	host,
@@ -200,11 +189,11 @@ func (b *Builder) RequestWithoutBody(
 	cookies []*http.Cookie,
 	authorization string,
 ) (*http.Response, []*http.Cookie) {
-	b.t.Helper()
+	t.Helper()
 
 	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, nil)
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 	}
 
 	b.require.NoError(err)
@@ -224,7 +213,7 @@ func (b *Builder) RequestWithoutBody(
 
 	response, err := b.client.Do(req)
 	if err != nil {
-		b.t.Log(err)
+		t.Log(err)
 	}
 
 	b.require.NoError(err)
@@ -249,6 +238,40 @@ func (b *Builder) RequestWithoutBody(
 	}
 
 	return response, allCookies
+}
+
+// SignIn sends a request to the specified endpoint and returns the response and cookies.
+func (b *Builder) SignIn(
+	t *testing.T,
+	ctx context.Context,
+	method,
+	host,
+	endpoint string,
+	requestBody []byte,
+	headers map[string]string,
+) (*http.Response, []*http.Cookie) {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, bytes.NewReader(requestBody))
+	if err != nil {
+		t.Log(err)
+	}
+
+	b.require.NoError(err)
+
+	if len(headers) != 0 {
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+	}
+
+	response, err := b.client.Do(req)
+	if err != nil {
+		t.Log(err)
+		b.require.NoError(err)
+	}
+
+	return response, response.Cookies()
 }
 
 // ReadResponseBody decodes the response body and returns it as a byte slice.
