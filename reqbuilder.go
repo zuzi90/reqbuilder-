@@ -37,7 +37,7 @@ func (b *Builder) Request(
 	host,
 	endpoint string,
 	reqBody []byte,
-	cookies *[]*http.Cookie,
+	cookies []*http.Cookie,
 	headers map[string]string,
 	authorization string) (*http.Response, []*http.Cookie) {
 	t.Helper()
@@ -55,9 +55,9 @@ func (b *Builder) Request(
 		}
 	}
 
-	if cookies != nil && len(*cookies) != 0 {
+	if cookies != nil && len(cookies) != 0 {
 		req.Header.Set("Authorization", authorization)
-		for _, cookie := range *cookies {
+		for _, cookie := range cookies {
 			req.AddCookie(cookie)
 		}
 	}
@@ -74,8 +74,8 @@ func (b *Builder) Request(
 		cookieMap[c.Name] = c
 	}
 
-	if cookies != nil && len(*cookies) != 0 {
-		for _, c := range *cookies {
+	if cookies != nil && len(cookies) != 0 {
+		for _, c := range cookies {
 			if _, exists := cookieMap[c.Name]; !exists {
 				cookieMap[c.Name] = c
 			}
