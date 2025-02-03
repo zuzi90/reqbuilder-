@@ -17,7 +17,6 @@ import (
 // Builder is a helper for sending HTTP requests in tests.
 type Builder struct {
 	client  *http.Client
-	t       *testing.T
 	require *require.Assertions
 }
 
