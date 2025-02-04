@@ -13,7 +13,7 @@
 ## Installation
 
 ```sh
-go get github.com/your-repo/reqbuilder
+go get github.com/zuzi90/reqbuilder-
 ```
 
 ## Usage
