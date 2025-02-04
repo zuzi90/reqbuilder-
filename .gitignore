@@ -2,3 +2,6 @@
 .idea/*
 req_test.go
 model.go
+Dockerfile
+Makefile
+docker-compose.yaml

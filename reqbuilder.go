@@ -55,10 +55,13 @@ func (b *Builder) Request(
 	}
 
 	if cookies != nil && len(cookies) != 0 {
-		req.Header.Set("Authorization", authorization)
 		for _, cookie := range cookies {
 			req.AddCookie(cookie)
 		}
+	}
+
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
 	}
 
 	response, err := b.client.Do(req)
@@ -141,10 +144,13 @@ func (b *Builder) MultipartRequest(
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	if cookies != nil && len(cookies) != 0 {
-		req.Header.Set("Authorization", authorization)
 		for _, cookie := range cookies {
 			req.AddCookie(cookie)
 		}
+	}
+
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
 	}
 
 	response, err := b.client.Do(req)
@@ -186,8 +192,7 @@ func (b *Builder) RequestWithoutBody(
 	endpoint string,
 	headers map[string]string,
 	cookies []*http.Cookie,
-	authorization string,
-) (*http.Response, []*http.Cookie) {
+	authorization string) (*http.Response, []*http.Cookie) {
 	t.Helper()
 
 	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, nil)
@@ -204,18 +209,20 @@ func (b *Builder) RequestWithoutBody(
 	}
 
 	if cookies != nil && len(cookies) != 0 {
-		req.Header.Set("Authorization", authorization)
 		for _, cookie := range cookies {
 			req.AddCookie(cookie)
 		}
 	}
 
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
+	}
+
 	response, err := b.client.Do(req)
 	if err != nil {
 		t.Log(err)
+		b.require.NoError(err)
 	}
-
-	b.require.NoError(err)
 
 	cookieMap := make(map[string]*http.Cookie)
 
@@ -247,8 +254,7 @@ func (b *Builder) SignIn(
 	host,
 	endpoint string,
 	requestBody []byte,
-	headers map[string]string,
-) (*http.Response, []*http.Cookie) {
+	headers map[string]string) (*http.Response, []*http.Cookie) {
 	t.Helper()
 
 	req, err := http.NewRequestWithContext(ctx, method, host+endpoint, bytes.NewReader(requestBody))
