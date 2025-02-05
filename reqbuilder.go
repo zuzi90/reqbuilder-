@@ -295,6 +295,22 @@ func (b *Builder) GetHeaders(response *http.Response, keys []string) map[string]
 	return m
 }
 
+func (b *Builder) GetHeadersFirstly(response *http.Response, keys []string) map[string]string {
+	m := make(map[string]string)
+
+	if response == nil {
+		return m
+	}
+
+	for _, key := range keys {
+		if values, ok := response.Header[key]; ok {
+			m[key] = values[0]
+		}
+	}
+
+	return m
+}
+
 // ReadResponseBody decodes the response body and returns it as a byte slice.
 func (b *Builder) ReadResponseBody(response *http.Response) ([]byte, error) {
 	var reader io.ReadCloser
