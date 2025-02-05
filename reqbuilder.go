@@ -279,6 +279,25 @@ func (b *Builder) SignIn(
 	return response, response.Cookies()
 }
 
+// TODO get all Headers from response
+// GetHeaders returns the headers from the response
+
+func (b *Builder) GetHeaders(response *http.Response, keys []string) map[string][]string {
+	m := make(map[string][]string)
+
+	if response == nil {
+		return m
+	}
+
+	for _, key := range keys {
+		if values, ok := response.Header[key]; ok {
+			m[key] = values
+		}
+	}
+
+	return m
+}
+
 // ReadResponseBody decodes the response body and returns it as a byte slice.
 func (b *Builder) ReadResponseBody(response *http.Response) ([]byte, error) {
 	var reader io.ReadCloser
