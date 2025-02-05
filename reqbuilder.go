@@ -279,9 +279,6 @@ func (b *Builder) SignIn(
 	return response, response.Cookies()
 }
 
-// TODO get all Headers from response
-// GetHeaders returns the headers from the response
-
 func (b *Builder) GetHeaders(response *http.Response, keys []string) map[string][]string {
 	m := make(map[string][]string)
 
