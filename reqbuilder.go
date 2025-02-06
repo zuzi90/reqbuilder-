@@ -97,6 +97,7 @@ type BrotliReadCloser struct {
 	io.Closer
 }
 
+// TODO handler
 // MultipartRequest sends a request with a `multipart/form-data` body to the specified endpoint.
 func (b *Builder) MultipartRequest(
 	t *testing.T,
@@ -279,6 +280,7 @@ func (b *Builder) SignIn(
 	return response, response.Cookies()
 }
 
+// GetHeaders returns the specified headers from the response.
 func (b *Builder) GetHeaders(response *http.Response, keys []string) map[string][]string {
 	m := make(map[string][]string)
 
@@ -295,6 +297,7 @@ func (b *Builder) GetHeaders(response *http.Response, keys []string) map[string]
 	return m
 }
 
+// GetHeadersFirstly returns the first value of the specified headers.
 func (b *Builder) GetHeadersFirstly(response *http.Response, keys []string) map[string]string {
 	m := make(map[string]string)
 
